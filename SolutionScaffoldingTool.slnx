@@ -4,5 +4,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Scaffold.Cli.EndToEnd/Scaffold.Cli.EndToEnd.csproj" />
+    <Project Path="tests/Scaffold.Cli.Tests/Scaffold.Cli.Tests.csproj" />
   </Folder>
 </Solution>
