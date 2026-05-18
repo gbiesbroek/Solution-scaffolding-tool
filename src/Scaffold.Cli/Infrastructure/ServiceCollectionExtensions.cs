@@ -14,9 +14,15 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
         services.AddSingleton<ICommandRunner, ProcessCommandRunner>();
+        services.AddSingleton<IFileSystem, RealFileSystem>();
+        services.AddSingleton(_ => new HttpClient { Timeout = TimeSpan.FromSeconds(10) });
+        services.AddSingleton<IHttpFileDownloader, HttpFileDownloader>();
         services.AddSingleton<ExitMenuAction>();
         services.AddSingleton<IRootItemRegistry>(sp =>
-            new RootItemRegistry(sp.GetRequiredService<ICommandRunner>()));
+            new RootItemRegistry(
+                sp.GetRequiredService<ICommandRunner>(),
+                sp.GetRequiredService<IFileSystem>(),
+                sp.GetRequiredService<IHttpFileDownloader>()));
         services.AddSingleton<RootMenuAction>(sp =>
             new RootMenuAction(sp.GetRequiredService<IRootItemRegistry>()));
         services.AddSingleton<ICategoryRegistry>(sp =>

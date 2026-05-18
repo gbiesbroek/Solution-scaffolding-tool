@@ -10,5 +10,6 @@ namespace Scaffold.Cli.Handlers;
 public interface IScaffoldHandler
 {
     string DisplayName { get; }
+    string Preview { get; }
     Task ExecuteAsync(IAnsiConsole console, HandlerContext context);
 }

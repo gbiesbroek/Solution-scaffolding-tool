@@ -9,7 +9,7 @@ public class RootItemRegistryTests
     private static RootItemRegistry CreateRegistry()
     {
         var stub = new StubCommandRunner(0, "", "");
-        return new RootItemRegistry(stub);
+        return new RootItemRegistry(stub, new StubFileSystem(), new StubHttpFileDownloader("content"));
     }
 
     [Fact]
@@ -38,8 +38,20 @@ public class RootItemRegistryTests
     }
 
     [Fact]
-    public void GetItems_GitignoreHandler_IsDotnetNewHandler()
+    public void GetItems_GitignoreFirstHandler_IsDotnetNewHandler()
     {
         Assert.IsType<DotnetNewHandler>(CreateRegistry().GetItems()[0].Handlers[0]);
+    }
+
+    [Fact]
+    public void GetItems_GitignoreHasTwoHandlers()
+    {
+        Assert.Equal(2, CreateRegistry().GetItems()[0].Handlers.Count);
+    }
+
+    [Fact]
+    public void GetItems_GitignoreSecondHandler_IsWebToFileHandler()
+    {
+        Assert.IsType<WebToFileHandler>(CreateRegistry().GetItems()[0].Handlers[1]);
     }
 }
