@@ -34,18 +34,37 @@ public class RootMenuAction : IMenuAction
 
             var selectedItem = items.First(i => i.DisplayName == selectedItemName);
 
-            var handlerPrompt = new SelectionPrompt<string>()
-                .Title($"How would you like to scaffold {selectedItem.DisplayName}?")
-                .WrapAround()
-                .AddChoices(selectedItem.Handlers.Select(h => h.DisplayName).Append("<- Back"));
+            while (true)
+            {
+                var handlerPrompt = new SelectionPrompt<string>()
+                    .Title($"How would you like to scaffold {selectedItem.DisplayName}?")
+                    .WrapAround()
+                    .AddChoices(selectedItem.Handlers.Select(h => h.DisplayName).Append("<- Back"));
 
-            var selectedHandlerName = console.Prompt(handlerPrompt);
-            if (selectedHandlerName == "<- Back")
-                continue;
+                var selectedHandlerName = console.Prompt(handlerPrompt);
+                if (selectedHandlerName == "<- Back")
+                    break;
 
-            var selectedHandler = selectedItem.Handlers.First(h => h.DisplayName == selectedHandlerName);
-            var ctx = new HandlerContext(Directory.GetCurrentDirectory());
-            await selectedHandler.ExecuteAsync(console, ctx);
+                var selectedHandler = selectedItem.Handlers.First(h => h.DisplayName == selectedHandlerName);
+
+                console.WriteLine();
+                console.MarkupLine($"  [grey]{Markup.Escape(selectedHandler.Preview)}[/]");
+                console.WriteLine();
+                var confirm = console.Prompt(
+                    new SelectionPrompt<string>()
+                        .Title("Proceed?")
+                        .WrapAround()
+                        .AddChoices("Confirm", "<- Back"));
+
+                if (confirm == "<- Back")
+                    continue;
+
+                var ctx = new HandlerContext(Directory.GetCurrentDirectory());
+                await selectedHandler.ExecuteAsync(console, ctx);
+
+                if (ctx.ShouldGoBack)
+                    break;
+            }
         }
     }
 }

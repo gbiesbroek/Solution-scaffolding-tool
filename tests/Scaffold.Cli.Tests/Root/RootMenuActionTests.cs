@@ -18,6 +18,7 @@ public class RootMenuActionTests
     private class RecordingHandler : IScaffoldHandler
     {
         public string DisplayName => "test handler";
+        public string Preview => "Test preview";
         public bool WasCalled { get; private set; }
         public Task ExecuteAsync(IAnsiConsole console, HandlerContext context)
         {
@@ -55,6 +56,7 @@ public class RootMenuActionTests
         var console = new TestConsole().Interactive();
         console.Input.PushKey(ConsoleKey.Enter);
         console.Input.PushKey(ConsoleKey.Enter);
+        console.Input.PushKey(ConsoleKey.Enter);
         console.Input.PushKey(ConsoleKey.DownArrow);
         console.Input.PushKey(ConsoleKey.Enter);
 
@@ -85,6 +87,51 @@ public class RootMenuActionTests
 
         await action.ExecuteAsync(console, navCtx);
 
+        Assert.True(navCtx.ShouldGoBack);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_HandlerSelected_BackOnConfirm_HandlerNotCalled()
+    {
+        var console = new TestConsole().Interactive();
+        console.Input.PushKey(ConsoleKey.Enter);
+        console.Input.PushKey(ConsoleKey.Enter);
+        console.Input.PushKey(ConsoleKey.DownArrow);
+        console.Input.PushKey(ConsoleKey.Enter);
+        console.Input.PushKey(ConsoleKey.DownArrow);
+        console.Input.PushKey(ConsoleKey.Enter);
+        console.Input.PushKey(ConsoleKey.DownArrow);
+        console.Input.PushKey(ConsoleKey.Enter);
+
+        var handler = new RecordingHandler();
+        var registry = OneItemRegistry(handler);
+        var action = new RootMenuAction(registry);
+        var navCtx = new NavigationContext();
+
+        await action.ExecuteAsync(console, navCtx);
+
+        Assert.False(handler.WasCalled);
+        Assert.True(navCtx.ShouldGoBack);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_HandlerSelected_ConfirmSelected_HandlerCalled()
+    {
+        var console = new TestConsole().Interactive();
+        console.Input.PushKey(ConsoleKey.Enter);
+        console.Input.PushKey(ConsoleKey.Enter);
+        console.Input.PushKey(ConsoleKey.Enter);
+        console.Input.PushKey(ConsoleKey.DownArrow);
+        console.Input.PushKey(ConsoleKey.Enter);
+
+        var handler = new RecordingHandler();
+        var registry = OneItemRegistry(handler);
+        var action = new RootMenuAction(registry);
+        var navCtx = new NavigationContext();
+
+        await action.ExecuteAsync(console, navCtx);
+
+        Assert.True(handler.WasCalled);
         Assert.True(navCtx.ShouldGoBack);
     }
 }
