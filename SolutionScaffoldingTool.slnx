@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Scaffold.Cli/Scaffold.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Scaffold.Cli.EndToEnd/Scaffold.Cli.EndToEnd.csproj" />
+  </Folder>
+</Solution>

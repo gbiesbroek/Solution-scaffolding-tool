@@ -7,6 +7,14 @@
 waits for user input then exits. Source under `/src`. End-to-end tests under `/tests`
 using xunit and Microsoft.Testing.Platform verifying the app waits for user input and closes.
 
+## Clarifications
+
+### Session 2026-05-18
+
+- Q: What is the CLI tool's invocation command name? → A: scaffold
+- Q: Does the tool display a message while waiting for input? → A: Yes — display a short prompt message (e.g., `Press Enter to exit...`) before waiting
+- Q: Where is the local NuGet feed located? → A: ~~Use the machine's default local NuGet cache (`~/.nuget/packages`)~~ **Amended**: Create a dedicated local directory as a NuGet feed source and register it as a named NuGet source for the current user
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Install and Run CLI Tool (Priority: P1)
@@ -22,10 +30,12 @@ and confirm it exits with code 0. Delivers a fully functional CLI artifact.
 
 **Acceptance Scenarios**:
 
-1. **Given** the tool is published to the local NuGet feed, **When** a developer runs
-   `dotnet tool install` using the local feed, **Then** the tool installs successfully.
-2. **Given** the tool is installed, **When** the developer invokes it, **Then** it starts
-   and waits for input without exiting on its own.
+1. **Given** the tool is packed and the `/nuget-local` feed directory is registered, **When**
+   a developer runs `dotnet tool install --global scaffold` using the local feed, **Then** the
+   tool installs successfully and is invokable as `scaffold`.
+2. **Given** the tool is installed, **When** the developer invokes `scaffold`, **Then** it
+   displays a short prompt message (e.g., `Press Enter to exit...`) and waits for input
+   without exiting on its own.
 3. **Given** the tool is waiting for input, **When** the developer types any text and presses
    Enter, **Then** the tool exits with exit code 0.
 
@@ -55,16 +65,17 @@ the tool process waits for stdin and terminates upon receiving input.
 
 ### Edge Cases
 
-- What happens when the user sends an empty line (just Enter) as input?
-- What happens when stdin is closed without input (e.g., piped empty input)?
-- What if the NuGet feed path does not exist or is unreachable during publish?
+- An empty line (just Enter) counts as valid input and triggers exit.
+- Piping empty stdin (EOF without content) causes immediate exit; acceptable in v1.
+- If publish fails (e.g., feed unreachable), the `.NET` CLI MUST report an error; no
+  special recovery is required in this version.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: The CLI tool MUST be packaged as a .NET global tool and published to a
-  local NuGet feed directory on the developer's machine.
+- **FR-001**: The CLI tool MUST be packaged as a .NET global tool with command name `scaffold`
+  and published to a dedicated local NuGet feed directory in the user's home directory (`~/nuget-local`).
 - **FR-002**: The CLI tool MUST operate exclusively in interactive mode; it MUST wait for
   user input from stdin before exiting.
 - **FR-003**: The CLI tool MUST exit cleanly (exit code 0) after receiving any line of input.
@@ -73,14 +84,22 @@ the tool process waits for stdin and terminates upon receiving input.
   Microsoft.Testing.Platform.
 - **FR-006**: The end-to-end tests MUST verify that the tool waits for user input and
   exits after receiving it.
-- **FR-007**: The project MUST include a NuGet configuration (or instructions) that
-  targets a local directory as the publish feed.
+- **FR-007**: A local NuGet feed directory (`~/nuget-local`) MUST exist in the user's home
+  directory and be registered as a named NuGet source for the current user (via `dotnet nuget add source`),
+  so that `dotnet tool install --global Scaffold.Cli` resolves the package from this feed.
+- **FR-009**: The project MUST provide a setup script or documented command sequence that:
+  registers the `~/nuget-local` directory as a NuGet source, packs the tool, and publishes
+  the `.nupkg` to that directory — all without touching the machine's global NuGet cache.
+- **FR-008**: When launched, the tool MUST write a short prompt message to stdout before
+  reading input (e.g., `Press Enter to exit...`). The E2E tests MUST assert this message
+  is present in stdout.
 
 ### Key Entities
 
-- **CLI Tool**: The .NET global tool package — entry point, interactive loop, exit behavior.
-- **Local NuGet Feed**: A local directory configured as a NuGet source; receives the
-  packed `.nupkg` artifact.
+- **CLI Tool (`scaffold`)**: The .NET global tool package — entry point, interactive loop, exit behavior.
+- **Local NuGet Feed**: A dedicated directory (`~/nuget-local`) in the user's home directory,
+  registered as a named NuGet source for the current user; receives packed `.nupkg` artifacts
+  and serves them to `dotnet tool install`.
 - **End-to-End Test Suite**: An xunit-based test project that launches the CLI tool as a
   child process and validates its interactive behavior.
 
@@ -96,12 +115,14 @@ the tool process waits for stdin and terminates upon receiving input.
   when no input is provided.
 - **SC-004**: 100% of the end-to-end tests pass on a standard developer machine with .NET
   and xunit configured.
-- **SC-005**: The publish-to-local-NuGet workflow completes without errors using standard
-  .NET CLI commands (`dotnet pack` + `dotnet nuget push` or equivalent).
+- **SC-005**: The publish-to-local-NuGet workflow (register feed source, pack, publish to
+  `~/nuget-local`) completes without errors using standard .NET CLI commands.
 
 ## Assumptions
 
-- The local NuGet feed is a directory on the developer's file system (not a hosted server).
+- The local NuGet feed is a dedicated directory (`~/nuget-local`) in the user's home directory,
+  registered as a named NuGet source for the current user via `dotnet nuget add source`. It does
+  not use or modify the machine's global NuGet packages cache (`~/.nuget/packages`).
 - The tool targets a current LTS version of .NET (.NET 8 or .NET 9).
 - The end-to-end tests launch the CLI as a separate OS process and interact via stdin/stdout.
 - An empty line (just Enter) counts as valid input and triggers exit.
